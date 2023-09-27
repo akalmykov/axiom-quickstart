@@ -1,12 +1,16 @@
-import { Axiom, AxiomConfig } from "@axiom-crypto/core";
+import {
+  Axiom,
+  AxiomConfig,
+  ValidationWitnessResponse,
+} from "@axiom-crypto/core";
 import { ethers } from "ethers";
 import { Constants } from "./shared/constants";
 import { abi as AxiomV1QueryAbi } from "./lib/abi/AxiomV1Query.json";
-import MetaMaskSDK from "@metamask/sdk";
+import { abi as my_abi } from "./abi.json";
 import dotenv from "dotenv";
 dotenv.config();
 
-let providerUri = process.env.PROVIDER_URI as string;
+let providerUri = process.env.TESTNET_PROVIDER_URI as string;
 if (!providerUri || providerUri === "") {
   providerUri = "http://127.0.0.1:8545";
 }
@@ -17,41 +21,19 @@ const config: AxiomConfig = {
   mock: true, // builds proofs without utilizing actual Prover resources
 };
 const ax = new Axiom(config);
+const UNI_V3_ADDR = "0x0cc2b3664c913f8443cf5404b460763dbaa90722";
+const currentQueryBlock = 9767839;
+const N_DATA_POINTS = 32;
+const BLOCK_SAMPLING_RATE = 12 * 5 * 60;
 
-// This is only for MetaMask integration, if you don't want to store the Goerli private key in an environmental variable
-const sdk = new MetaMaskSDK({
-  dappMetadata: {
-    name: "Axiom",
-  },
-});
-
-// here is an example query to show you how QueryBuilder works
-async function newQuery(blockNumber: number) {
-  const UNI_V2_ADDR = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+async function newQuery(blockNum: number) {
   const qb = ax.newQueryBuilder();
 
-  // a query for just a block header
-  await qb.append({ blockNumber });
-  // a query for a block header and the state of an account at that block
-  // this query in fact contains the previous one
-  await qb.append({ blockNumber, address: UNI_V2_ADDR });
-  // a query for a block header, account state, and the value at storage slot 0 of the account at that block
-  // this query in fact contains the previous two
-  await qb.append({ blockNumber, address: UNI_V2_ADDR, slot: 0 });
-  // query for a different storage slot
-  await qb.append({ blockNumber, address: UNI_V2_ADDR, slot: 1 });
-
-  // put an address that has non-empty slots
-  const testAddress = "0x8eb3a522cAB99ED365e450Dad696357DE8aB7E9d";
-  // we can query other blocks and accounts too:
-  for (let i = 0; i < 2; i++) {
-    qb.append({ blockNumber: blockNumber + i, address: testAddress });
-  }
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < N_DATA_POINTS; i++) {
     await qb.append({
-      blockNumber: blockNumber + 2 + i,
-      address: testAddress,
-      slot: i,
+      blockNumber: blockNum - i * BLOCK_SAMPLING_RATE,
+      address: UNI_V3_ADDR,
+      slot: 1,
     });
   }
 
@@ -59,35 +41,17 @@ async function newQuery(blockNumber: number) {
   const { keccakQueryResponse, queryHash, query } = await qb.build();
   console.log("keccakQueryResponse:", keccakQueryResponse);
   console.log("Query hash:", queryHash);
-  console.log("Query data:", query);
+  // console.log("Query data:", query);
+
   return { keccakQueryResponse, queryHash, query };
 }
 
 async function main() {
-  // This must be set to a number that hasn't been queried yet (or any values that would calculate
-  // a different keccakQueryResposne) since the AxiomV1Query contract saves the keccakQueryResponses
-  // in a mapping and the call will fail if the keccakQueryResponse already exists in that mapping.
-  let currentQueryBlock = 9_142_026;
-
   let signer: ethers.Signer;
 
-  if (!process.env.PRIVATE_KEY) {
-    const ethereum = sdk.getProvider();
-    await ethereum?.request({ method: "eth_requestAccounts", params: [] });
-    const provider = new ethers.BrowserProvider(
-      ethereum as ethers.Eip1193Provider
-    );
-    signer = await provider.getSigner();
-  } else {
-    const provider = new ethers.JsonRpcProvider(providerUri);
-    const wallet = new ethers.Wallet(
-      process.env.PRIVATE_KEY as string,
-      provider
-    );
-    signer = wallet;
-  }
-
-  let signerAddress = await signer.getAddress();
+  const provider = new ethers.JsonRpcProvider(providerUri);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY as string, provider);
+  signer = wallet;
 
   const axiomV1Query = new ethers.Contract(
     Constants.AxiomV1QueryAddress,
@@ -97,22 +61,82 @@ async function main() {
 
   const { keccakQueryResponse, query } = await newQuery(currentQueryBlock);
 
-  console.log("Sending query transaction...");
-  const tx = await axiomV1Query.sendQuery(
-    keccakQueryResponse,
-    signerAddress,
-    query,
-    {
-      value: ethers.parseEther("0.01"),
-      gasPrice: ethers.parseUnits("100", "gwei"),
-    }
+  // Since the AxiomV1Query contract saves the keccakQueryResponses in a mapping and the call will fail if the keccakQueryResponse already exists in that mapping.
+  // Uncomment this block and execute it once per query. It will revert for the query it has been already called with
+  // ===============================================================
+  // console.log("Sending query transaction...");
+  // let signerAddress = await signer.getAddress();
+  // const tx = await axiomV1Query.sendQuery(
+  //   keccakQueryResponse,
+  //   signerAddress,
+  //   query,
+  //   {
+  //     value: ethers.parseEther("0.01"),
+  //     gasPrice: ethers.parseUnits("100", "gwei"),
+  //   }
+  // );
+  // console.log("tx", tx);
+  // AxiomProxy https://goerli.etherscan.io/address/0x4fb202140c5319106f15706b1a69e441c9536306#events
+  // const res = await tx.wait();
+  // console.log("res", res);
+  // ===============================================================
+
+  let responseTree = await ax.query.getResponseTreeForKeccakQueryResponse(
+    keccakQueryResponse
   );
-  console.log("tx", tx);
 
-  const res = await tx.wait();
-  console.log("res", res);
+  const keccakBlockResponse = responseTree.blockTree.getHexRoot();
+  const keccakAccountResponse = responseTree.accountTree.getHexRoot();
+  const keccakStorageResponse = responseTree.storageTree.getHexRoot();
 
-  sdk.disconnect();
+  let storageWitnesses: ValidationWitnessResponse[] = new Array();
+  for (let i = 0; i < N_DATA_POINTS; i++) {
+    storageWitnesses[i] = ax.query.getValidationWitness(
+      responseTree,
+      currentQueryBlock - i * BLOCK_SAMPLING_RATE,
+      UNI_V3_ADDR,
+      1
+    )!;
+  }
+
+  const storageProofData = {
+    keccakBlockResponse,
+    keccakAccountResponse,
+    keccakStorageResponse,
+    blockResponses: [...storageWitnesses.map((x) => x.blockResponse)],
+    accountResponses: [...storageWitnesses.map((x) => x.accountResponse)],
+    storageResponses: [...storageWitnesses.map((x) => x.storageResponse)],
+  };
+
+  console.log(storageProofData);
+
+  // const storageWitness_1: ValidationWitnessResponse =
+  //   ax.query.getValidationWitness(
+  //     responseTree,
+  //     currentQueryBlock,
+  //     UNI_V3_ADDR,
+  //     1
+  //   )!;
+  // const storageWitness_2: ValidationWitnessResponse =
+  //   ax.query.getValidationWitness(
+  //     responseTree,
+  //     currentQueryBlock,
+  //     UNI_V3_ADDR,
+  //     2
+  //   )!;
+
+  const myContract = new ethers.Contract(
+    "0x51d6cc0dd7afe04bbf4b791e012246493abbf36e",
+    my_abi,
+    signer
+  );
+
+  const rebal_tx = await myContract.rebalance(storageProofData, 1);
+
+  console.log("rebal_tx", rebal_tx);
+  // https://goerli.etherscan.io/address/0x45c5ceff95f7ddc294768dfa97b23f6cb8800172
+  const rebal_tx_res = await rebal_tx.wait();
+  console.log("rebal_tx_res", rebal_tx_res);
 }
 
 main();

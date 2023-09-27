@@ -1,0 +1,219 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidDataLengthError",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidNonceError",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidSenderError",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProofError",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "blockNumber",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "slot",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "RebalanceData",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "AXIOM_V1_QUERY_GOERLI_ADDR",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "keccakBlockResponse",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "keccakAccountResponse",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "keccakStorageResponse",
+              "type": "bytes32"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint32",
+                  "name": "blockNumber",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "blockHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "leafIdx",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32[6]",
+                  "name": "proof",
+                  "type": "bytes32[6]"
+                }
+              ],
+              "internalType": "struct IAxiomV1Query.BlockResponse[]",
+              "name": "blockResponses",
+              "type": "tuple[]"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint32",
+                  "name": "blockNumber",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "address",
+                  "name": "addr",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint64",
+                  "name": "nonce",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint96",
+                  "name": "balance",
+                  "type": "uint96"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "storageRoot",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "codeHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "leafIdx",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32[6]",
+                  "name": "proof",
+                  "type": "bytes32[6]"
+                }
+              ],
+              "internalType": "struct IAxiomV1Query.AccountResponse[]",
+              "name": "accountResponses",
+              "type": "tuple[]"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint32",
+                  "name": "blockNumber",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "address",
+                  "name": "addr",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "slot",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint32",
+                  "name": "leafIdx",
+                  "type": "uint32"
+                },
+                {
+                  "internalType": "bytes32[6]",
+                  "name": "proof",
+                  "type": "bytes32[6]"
+                }
+              ],
+              "internalType": "struct IAxiomV1Query.StorageResponse[]",
+              "name": "storageResponses",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct AxiomContract.ResponseStruct",
+          "name": "axiomResponse",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "responseIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "rebalance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+}
