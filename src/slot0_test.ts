@@ -24,7 +24,7 @@ const UNI_V3_ADDR = "0x297FFb1BbAc2F906A7c8f10808E2E48825CF5b7f";
 const currentQueryBlock = 9852684;
 const N_DATA_POINTS = 64;
 const BLOCK_SAMPLING_RATE = 12 * 5 * 10;
-const SLOT = 0;
+const SLOT = Number(process.env.SLOT);
 
 // Proof for SLOT 0
 // https://explorer.axiom.xyz/v1/goerli/query/0x9313ad04234460c26ce72138da52bdf636aa9c3f34b62e0dc8b4c7a52cafb797
@@ -43,8 +43,6 @@ async function newQuery(blockNum: number) {
   }
 
   const { keccakQueryResponse, queryHash, query } = await qb.build();
-  console.log("keccakQueryResponse:", keccakQueryResponse);
-  console.log("Query hash:", queryHash);
   return { keccakQueryResponse, queryHash, query };
 }
 
@@ -61,7 +59,9 @@ async function main() {
     signer
   );
 
-  const { keccakQueryResponse, query } = await newQuery(currentQueryBlock);
+  const { keccakQueryResponse, queryHash, query } = await newQuery(
+    currentQueryBlock
+  );
 
   let responseTree = await ax.query.getResponseTreeForKeccakQueryResponse(
     keccakQueryResponse
@@ -81,6 +81,8 @@ async function main() {
     )!;
   }
   console.log(storageWitnesses);
+  console.log("keccakQueryResponse:", keccakQueryResponse);
+  console.log("Query hash:", queryHash);
 }
 
 main();
